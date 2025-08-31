@@ -2,12 +2,8 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Collectors;
 
@@ -30,7 +26,7 @@ public class WebCrawler {
         try {
             for (String url : urls) {
                 phaser.register();
-                executorService.submit(() -> crawlChild(url, executorService));
+                executorService.submit(() -> crawlChild(url));
             }
             phaser.arriveAndAwaitAdvance();
             phaser.arriveAndDeregister();
@@ -52,13 +48,18 @@ public class WebCrawler {
     public void wordRanking() {
         wordCounts.entrySet().stream()
                 .filter((e) -> e.getValue().longValue() >= 100)
-                .sorted(Comparator.comparingLong((Map.Entry<String, LongAdder> e) -> e.getValue().longValue()))
+                .sorted(Comparator.comparingLong((Map.Entry<String, LongAdder> e) -> e.getValue().longValue()).reversed())
+                .limit(50)
+                .collect(Collectors.collectingAndThen(Collectors.toList(), l -> {
+                    Collections.reverse(l);
+                    return l.stream();
+                }))
                 .map(e -> String.format("%s %d", e.getKey(), e.getValue().longValue()))
                 .forEach(System.out::println);
         System.out.printf("Total words seen: %d%n", totalCount.sum());
     }
 
-    private void crawlChild(String url, ExecutorService executorService) {
+    private void crawlChild(String url) {
         if (!visited.add(url)) {
             return;
         }
@@ -86,7 +87,7 @@ public class WebCrawler {
                 for (String childUrl : urls) {
                     phaser.register();
                     try {
-                        executorService.submit(() -> crawlChild(childUrl, executorService));
+                        executorService.submit(() -> crawlChild(childUrl));
                     } catch (RejectedExecutionException e) {
                         phaser.arriveAndDeregister();
                     }

@@ -3,7 +3,7 @@
 public class Main {
     public static void main(String[] args) {
         WebCrawler webCrawler = new WebCrawler();
-        webCrawler.crawl(new String[]{"https://google.com"});
+        webCrawler.crawl(new String[]{"https://youtube.com"});
 
     }
 }
